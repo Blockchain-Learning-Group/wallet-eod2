@@ -4,6 +4,8 @@ import './App.css';
 // Import the web3 library
 import Web3 from 'web3'
 
+import ipfsAPI from 'ipfs-api'
+
 // Material UI
 import MenuItem from 'material-ui/MenuItem';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
@@ -32,6 +34,8 @@ class App extends Component {
   }
 
   componentDidMount() {
+    this.ipfs = ipfsAPI({host: 'ipfs.infura.io', port: '5001', protocol: 'https'})
+
     // Create a web3 connection
     this.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
@@ -129,10 +133,35 @@ class App extends Component {
     this.loadAccountBalances(this.state.availableAccounts[index].key)
     }
 
+  upload = async (event)=> {
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      const buffer = new Buffer(reader.result) // Convert data into buffer
+
+       // Upload buffer to IPFS
+      const result = await this.ipfs.files.add(buffer)
+      const dataHash = result[0].hash
+      console.log(dataHash)
+
+      // For demo purposes pop open a new tab of the data uploaded to ipfs
+      const url = `https://ipfs.io/ipfs/${result[0].hash}`
+      window.open(url)
+    }
+
+    reader.readAsArrayBuffer(event.target.files[0]); // Read Provided File
+  }
+
   render() {
     let component
 
     component = <div>
+      <RaisedButton
+        containerElement='ipfs-upload'
+        label='Upload Certificate & Accompanying Data...'>
+        <input type="file" onChange={this.upload}/>
+      </RaisedButton>
+
       <h3>Active Account</h3>
       <DropDownMenu maxHeight={300} width={500} value={this.state.defaultAccount} onChange={this.handleDropDownChange}>
         {this.state.availableAccounts}
